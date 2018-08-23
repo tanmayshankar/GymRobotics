@@ -22,13 +22,13 @@ class PolicyManager():
 		output_dimensions = 4
 
 		# Initialize a polivy network. 
-		self.model = PolicyNetwork(input_dimensions,output_dimensions)
+		self.ACModel = ActorCriticModel(input_dimensions,output_dimensions)
 
 		# Create the actual network
 		if self.args.weights:
-			self.model.create_network(session, pretrained_weights=self.args.weights,to_train=self.args.train)
+			self.ACModel.create_policy_network(session, pretrained_weights=self.args.weights,to_train=self.args.train)
 		else:
-			self.model.create_network(session, to_train=self.args.train)			
+			self.ACModel.create_policy_network(session, to_train=self.args.train)			
 
 		# Initialize a memory replay. 
 		self.memory = ReplayMemory()
