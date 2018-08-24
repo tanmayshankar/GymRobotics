@@ -15,7 +15,7 @@ class Trainer():
 		self.sess = sess
 		self.args = args
 
-		self.max_timesteps = 500
+		self.max_timesteps = 2000
 		
 		self.initial_epsilon = 0.5
 		self.final_epislon = 0.05
@@ -194,8 +194,7 @@ class Trainer():
 			# Reset environment.
 			state = self.environment.reset()
 			terminal = False
-			
-			print("New Episode!")
+						
 			# Within each episode, just keep going until you terminate or we reach max number of timesteps. 
 			while not(terminal) and counter<self.max_timesteps:
 
@@ -226,6 +225,7 @@ class Trainer():
 				# If counter % save_
 				if counter%self.save_every==0:
 					self.ACModel.save_model(counter)
+					print("Reached Iteration",counter)
 
 
 
