@@ -28,6 +28,7 @@ class Trainer():
 		# Batch size, observation size
 		self.batch_size = 25
 		self.gamma = 0.99
+		self.save_every = 10000
 	
 		print("Setup Trainer Init.")
 
@@ -222,6 +223,9 @@ class Trainer():
 				# Increment counter. 
 				counter+=1
 
+				# If counter % save_
+				if counter%self.save_every==0:
+					self.ACModel.save_model(counter)
 
 
 
