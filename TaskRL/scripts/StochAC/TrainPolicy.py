@@ -44,6 +44,7 @@ def parse_arguments():
 	parser.add_argument('--weights',dest='weights',type=str)
 	parser.add_argument('--train',dest='train',type=int,default=1)
 	parser.add_argument('--env',dest='env',type=str)
+	parser.add_argument('--render',dest='render',type=int,default=0)	
 
 	return parser.parse_args()
 

@@ -68,7 +68,7 @@ class CriticModel():
 		self.input = tf.placeholder(tf.float32,shape=[None,self.input_dimensions],name='input')
 		# Use Action from Actor Network only fro DDPG. 
 		# self.action_taken = action
-		self.actor_taken = tf.placeholder(tf.float32, shape=[None, self.output_dimensions],name='action_taken')
+		self.action_taken = tf.placeholder(tf.float32, shape=[None, self.output_dimensions],name='action_taken')
 
 		self.concat_input = tf.concat([self.input,self.action_taken],axis=1,name='concat')
 
