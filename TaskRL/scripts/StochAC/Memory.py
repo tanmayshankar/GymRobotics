@@ -14,9 +14,11 @@ class ReplayMemory():
 		self.memory_len = 0
 		self.memory_size = memory_size
 
+		print("Setup Memory.")
+
 	def append_to_memory(self, transition):
 
-		if self.memory.check_full():
+		if self.check_full():
 			# Remove first transition in the memory (queue).
 			self.memory.pop(0)
 			# Now push the transition to the end of hte queue. 
@@ -30,7 +32,7 @@ class ReplayMemory():
 
 		self.memory_len = len(self.memory)
 
-		indices = npy.random.randint(0,high=memory_len,size=(batch_size))
+		indices = npy.random.randint(0,high=self.memory_len,size=(batch_size))
 
 		return indices
 

@@ -6,12 +6,13 @@ from Transitions import Transition
 
 class Trainer():
 
-	def __init__(self, ACpolicy=None, environment=None, memory=None, args=None):
+	def __init__(self, sess=None, policy=None, environment=None, memory=None, args=None):
 
 		# self.policy = policy
-		self.ACModel = ACpolicy
+		self.ACModel = policy
 		self.environment = environment
 		self.memory = memory
+		self.sess = sess
 		self.args = args
 
 		self.max_timesteps = 500
@@ -19,7 +20,7 @@ class Trainer():
 		self.initial_epsilon = 0.5
 		self.final_epislon = 0.05
 		self.anneal_iterations = 100000
-		self.epsilon_anneal_rate = (self.initial_epsilon-self.final_epislon)/self.anneal_epochs
+		self.epsilon_anneal_rate = (self.initial_epsilon-self.final_epislon)/self.anneal_iterations
 
 		# Training limits. 
 		self.number_episodes = 10000
@@ -28,6 +29,8 @@ class Trainer():
 		self.batch_size = 25
 		self.gamma = 0.99
 	
+		print("Setup Trainer Init.")
+
 	def initialize_memory(self):
 
 		# Number of initial transitions needs to be less than memory size. 
@@ -37,6 +40,7 @@ class Trainer():
 		# While memory isn't full:
 		#while self.memory.check_full()==0:
 
+		print("Starting Memory Burn In.")
 		# While number of transitions is less than initial_transitions.
 		while self.memory.memory_len<self.initial_transitions:
 			
@@ -65,11 +69,13 @@ class Trainer():
 				# Increment counter. 
 				counter+=1
 
+		print("Memory Burn In Complete.")
+
 	def set_parameters(self,iteration_number):
 		# Setting parameters.
 		if self.args.train:
-			if iteration_number<self.anneal_epochs:
-				self.annealed_epsilon = self.initial_epsilon-iteration_number*self.anneal_epsilon_rate
+			if iteration_number<self.anneal_iterations:
+				self.annealed_epsilon = self.initial_epsilon-iteration_number*self.epsilon_anneal_rate
 				# self.annealed_beta = self.initial_beta-e*self.beta_anneal_rate			
 			else:
 				self.annealed_epsilon = self.final_epsilon
@@ -88,8 +94,11 @@ class Trainer():
 		# Greedy selection of action from policy. 
 		# Here we have a continuous stochastic policy, parameterized as a Gaussian policy. 
 		# Just simply select the mean of the Gaussian as the action? 
+
+		assembled_state = npy.reshape(self.assemble_state(state),(1,self.ACModel.actor_network.input_dimensions))
+
 		return self.sess.run(self.ACModel.actor_network.normal_means, 
-			feed_dict={self.ACModel.actor_network.input: self.assemble_state(state) })
+			feed_dict={self.ACModel.actor_network.input: assembled_state})[0]
 		
 	def select_action(self, state):
 		# Select an action either from the policy or randomly. 
@@ -100,7 +109,7 @@ class Trainer():
 			action = self.environment.action_space.sample()			
 		else:
 			# Greedily select action from policy. 
-			action = self.select_action_from_policy(state)
+			action = self.select_action_from_policy(state)	
 
 		return action
 
@@ -132,15 +141,24 @@ class Trainer():
 		# Set target Q values - will need forward prop of critic for Q(s',a').
 		# Don't use Q(s',a'), instead, use Q(s', pi(s')). (DDPG, DPG,) etc.,)
 
+		# Critic network's input action_taken is either a placeholder for using actions stored in the memory, 
+		# or uses the actor network's predicted action.
+		# In our earlier DDPG implementation, we only needed the actor network's predicted action,
+		# Because we never forward propagated the critic network with a selected action.
+		# In AC-OffPG, we used .. placeholders. 
+
+		next_actions = self.sess.run(self.ACModel.actor_network.sample_action,
+			feed_dict={self.ACModel.actor_network.input: self.batch_next_states})
+
 		# First evaluate critic estimates of Q(s',pi(s')).
 		critic_estimates = self.sess.run(self.ACModel.critic_network.predicted_Qvalue, 
 			feed_dict={self.ACModel.critic_network.input: self.batch_next_states,
-						self.ACModel.critic_network.action_taken: self.ACModel.actor_network.sample_action,
+						self.ACModel.critic_network.action_taken: next_actions,
 						self.ACModel.actor_network.input: self.batch_next_states})
 
 		# Next construct target Q as r+gamma Q(s',pi(s')).
 		self.batch_target_Qvalues = self.batch_onestep_rewards+self.gamma*critic_estimates
-		
+	
 		# Update Critic and Actor
 		merged, _, _ = self.sess.run([self.ACModel.merged_summaries, self.ACModel.train_critic, self.ACModel.train_actor],
 			feed_dict={self.ACModel.critic_network.input: self.batch_states,
@@ -162,7 +180,10 @@ class Trainer():
 		# Interacting with the environment: 
 		# For initialize_memory, just randomly sample actions from the action space, use env.action_space.sample()
 
+		self.initialize_memory()
 		# Train for at least these many episodes. 
+
+		print("Starting Main Training Procedure.")
 		for e in range(self.number_episodes):
 
 			# Maintain coujnter to keep track of updating the policy regularly. 
@@ -173,13 +194,14 @@ class Trainer():
 			state = self.environment.reset()
 			terminal = False
 			
+			print("New Episode!")
 			# Within each episode, just keep going until you terminate or we reach max number of timesteps. 
 			while not(terminal) and counter<self.max_timesteps:
 
 				self.set_parameters(counter)
 
 				# SAMPLE ACTION FROM POLICY(STATE)				
-				self.select_action(state)
+				action = self.select_action(state)
 
 				# TAKE STEP WITH ACTION
 				next_state, onestep_reward, terminal, success = self.environment.step(action)				

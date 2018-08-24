@@ -12,3 +12,5 @@ class Transition():
 		self.onestep_reward = onestep_reward
 		self.terminal = terminal
 		self.success = success
+
+        

@@ -10,6 +10,8 @@ class ActorModel():
 		if name_scope:
 			self.name_scope = name_scope
 
+		print("Setup Actor Model Variables.")
+
 	def define_base_model(self, sess, to_train=None):
 		# Initializing the session.
 		self.sess = sess
@@ -29,6 +31,8 @@ class ActorModel():
 		for i in range(1,self.num_layers):
 			self.hidden_layers[i] = tf.layers.dense(self.hidden_layers[i-1],self.hidden_units[i],activation=tf.nn.tanh)
 
+		print("Setup Base Actor Model.")
+
 	def define_actor_layers(self):
 		# Create Normal distribution for action. 
 		# Use the fact that GYM takes care of bounding actions --> This is wrong, but start with this. 		
@@ -38,12 +42,16 @@ class ActorModel():
 
 		# Sample and placeholder for sampled actions. 
 		self.sample_action = self.normal_dist.sample(name='sampled_action')
-		self.sampled_action = tf.placeholder(tf.flaot32, shape=[None,self.output_dimensions],name='sampled_action')
+		self.sampled_action = tf.placeholder(tf.float32, shape=[None,self.output_dimensions],name='sampled_action')
+
+		print("Setup Actor Model Actor Layers.")
 		
 	def define_actor_model(self,sess, to_train=None):
 		with tf.variable_scope(self.name_scope):
 			self.define_base_model(sess,to_train)
 			self.define_actor_layers()
+
+		print("Setup Actor Model.")
 
 class CriticModel():
 
@@ -54,6 +62,8 @@ class CriticModel():
 		self.num_layers = num_layers
 		if name_scope:
 			self.name_scope = name_scope
+
+		print("Setup Critic Model Variables.")
 
 	def define_base_model(self, sess, to_train=None):
 		# Initializing the session.
@@ -66,8 +76,10 @@ class CriticModel():
 
 		# Input placeholder.
 		self.input = tf.placeholder(tf.float32,shape=[None,self.input_dimensions],name='input')
-		# Use Action from Actor Network only fro DDPG. 
-		# self.action_taken = action
+		# Use Action from Actor Network FOR BOTH! 
+		# Use placeholder. Feed action from actor network for computing Q(s',\pi(s')). 
+		# Use action from memory to compute Q(s,a) when training critic. 
+		# self.action_taken = actor_action
 		self.action_taken = tf.placeholder(tf.float32, shape=[None, self.output_dimensions],name='action_taken')
 
 		self.concat_input = tf.concat([self.input,self.action_taken],axis=1,name='concat')
@@ -79,30 +91,38 @@ class CriticModel():
 		for i in range(1,self.num_layers):
 			self.hidden_layers[i] = tf.layers.dense(self.hidden_layers[i-1],self.hidden_units[i],activation=tf.nn.tanh)
 
+		print("Setup Base Critic Model.")			
+
 	def define_critic_layers(self):
 		self.initialization_val = 3e-4
 		self.predicted_Qvalue = tf.layers.dense(self.hidden_layers[-1],1,name='predicted_Qvalue',
 			kernel_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val),
 			bias_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val))
 
+		print("Setup Critic Model Critic Layer.")			
+
 	def define_critic_model(self,sess, to_train=None):
 		with tf.variable_scope(self.name_scope):
 			self.define_base_model(sess,to_train)
 			self.define_critic_layers()
 
+		print("Setup Critic Model.")
+
 class ActorCriticModel():
 
-	def __init__(self, sess, to_train=True):
+	def __init__(self, input_dimensions, output_dimensions, sess=None, to_train=True):
 
 		self.sess = sess
 		self.to_train = to_train		
 		# Here we instantiate the actor and critic (don't inherit).
 
-		self.actor_network = ActorModel(name_scope='ActorModel')
+		self.actor_network = ActorModel(input_dimensions,output_dimensions,name_scope='ActorModel')
 		self.actor_network.define_actor_model(sess,to_train=to_train)		
 
-		self.critic_network = CriticModel(name_scope='CriticModel')
+		self.critic_network = CriticModel(input_dimensions,output_dimensions,name_scope='CriticModel')
 		self.critic_network.define_critic_model(sess,to_train=to_train)
+
+		print("Setup Actor Critic Model Init.")			
 
 	def define_critic_training_ops(self):
 		self.target_Qvalue = tf.placeholder(tf.float32, shape=(None,1), name='target_Qvalue')
@@ -122,6 +142,8 @@ class ActorCriticModel():
 		# self.train_critic = self.critic_optimizer.apply_gradients(self.critic_gradients_vars)
 		self.train_critic = self.critic_optimizer.apply_gradients(self.critic_clipped_gradients)
 
+		print("Defined Critic Training Ops.")			
+
 	def define_actor_training_ops(self):
 		# Remember, we're doing a stochastic actor critic here, not DDPG. 
 		# The Actor loss is still - Q log pi (a|s, theta). 
@@ -139,6 +161,8 @@ class ActorCriticModel():
 		# self.train_actor = self.actor_optimizer.apply_gradients(self.actor_gradients_vars)
 		self.train_actor = self.actor_optimizer.apply_gradients(self.actor_clipped_gradients)
 
+		print("Defined Actor Training Ops.")			
+
 	def define_logging_ops(self):
 		if self.to_train:
 			# Create file writer to write summaries.        
@@ -155,6 +179,8 @@ class ActorCriticModel():
 			# Merge summaries. 
 			self.merged_summaries = tf.summary.merge_all()      
 
+		print("Defined Logging Ops.")			
+
 	def define_training_ops(self):
 
 		self.define_critic_training_ops()
@@ -165,6 +191,8 @@ class ActorCriticModel():
 			self.writer = tf.summary.FileWriter('training',self.sess.graph)			
 		init = tf.global_variables_initializer()
 		self.sess.run(init)
+
+		print("Defined All Training Ops.")			
 
 	def model_load_alt(self, model_file):
 		print("RESTORING MODEL FROM:", model_file)
@@ -188,3 +216,5 @@ class ActorCriticModel():
 
 		if pretrained_weights:
 			self.model_load_alt(pretrained_weights)
+
+		print("Done creating ACModel.")
