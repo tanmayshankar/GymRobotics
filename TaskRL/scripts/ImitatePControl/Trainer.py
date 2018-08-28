@@ -18,11 +18,14 @@ class Trainer():
 		self.max_timesteps = 2000
 		
 		self.initial_epsilon = 0.5
-		self.final_epislon = 0.05
+		self.final_epsilon = 0.05
 		self.test_epsilon = 0.
 		self.anneal_iterations = 100000
-		self.epsilon_anneal_rate = (self.initial_epsilon-self.final_epislon)/self.anneal_iterations
+		self.epsilon_anneal_rate = (self.initial_epsilon-self.final_epsilon)/self.anneal_iterations
 
+		# Beta value determines mixture of expert and learner. 
+		# Beta 1 means completely expert. 
+		# Beta 0 means completely learner.
 		self.initial_beta = 1.
 		self.final_beta = 0.5
 		self.test_beta = 0.
@@ -59,9 +62,7 @@ class Trainer():
 			terminal = False
 
 			while counter<self.max_timesteps and self.memory.memory_len<self.initial_transitions and not(terminal):
-
-				
-
+			
 				# Put in new transitions. 
 				# action = self.environment.action_space.sample()
 				action = self.select_action_beta(state)
