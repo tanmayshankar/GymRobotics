@@ -40,7 +40,7 @@ class Trainer():
 
 		# While memory isn't full:
 		#while self.memory.check_full()==0:
-
+		self.max_timesteps = 200
 		print("Starting Memory Burn In.")
 		# While number of transitions is less than initial_transitions.
 		while self.memory.memory_len<self.initial_transitions:
@@ -58,6 +58,10 @@ class Trainer():
 				# Take a step in the environment. 
 				next_state, onestep_reward, terminal, success = self.environment.step(action)
 
+				# If render flag on, render environment.
+				if self.args.render: 
+					self.environment.render()				
+
 				# Store in instance of transition class. 
 				new_transition = Transition(state,action,next_state,onestep_reward,terminal,success)
 
@@ -70,6 +74,7 @@ class Trainer():
 				# Increment counter. 
 				counter+=1
 
+		self.max_timesteps = 2000
 		print("Memory Burn In Complete.")
 
 	def set_parameters(self,iteration_number):
@@ -158,7 +163,8 @@ class Trainer():
 						self.ACModel.actor_network.input: self.batch_next_states})
 
 		# Next construct target Q as r+gamma Q(s',pi(s')).
-		self.batch_target_Qvalues = self.batch_onestep_rewards+self.gamma*critic_estimates
+		self.batch_target_Qvalues = self.batch_onestep_rewards+self.gamma*(1-self.batch_terminal)*critic_estimates
+		# self.batch_target_Qvalues = self.batch_onestep_rewards+self.gamma*critic_estimates
 	
 		# Update Critic and Actor
 		merged, _, _ = self.sess.run([self.ACModel.merged_summaries, self.ACModel.train_critic, self.ACModel.train_actor],
@@ -185,11 +191,13 @@ class Trainer():
 		# Train for at least these many episodes. 
 
 		print("Starting Main Training Procedure.")
+		meta_counter = 0
+
 		for e in range(self.number_episodes):
 
 			# Maintain coujnter to keep track of updating the policy regularly. 
 			# And to check if we are exceeding max number of timesteps .
-			counter = 0
+			counter = 0			
 
 			# Reset environment.
 			state = self.environment.reset()
@@ -221,11 +229,13 @@ class Trainer():
 
 				# Increment counter. 
 				counter+=1
-
+				meta_counter+=1 
 				# If counter % save_
-				if counter%self.save_every==0:
-					self.ACModel.save_model(counter)
-					print("Reached Iteration",counter)
+				if meta_counter%self.save_every==0 and self.args.train:
+					self.ACModel.save_model(meta_counter)
+					print("Reached Iteration",meta_counter)
+
+			# embed()
 
 
 

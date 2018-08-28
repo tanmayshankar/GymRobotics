@@ -37,7 +37,8 @@ class ActorModel():
 		# Create Normal distribution for action. 
 		# Use the fact that GYM takes care of bounding actions --> This is wrong, but start with this. 		
 		self.normal_means = tf.layers.dense(self.hidden_layers[-1],self.output_dimensions,activation=tf.nn.sigmoid)
-		self.normal_vars = tf.layers.dense(self.hidden_layers[-1],self.output_dimensions,activation=tf.nn.softplus)
+		# self.normal_vars = tf.layers.dense(self.hidden_layers[-1],self.output_dimensions,activation=tf.nn.softplus)
+		self.normal_vars = 0.2*npy.ones((4),dtype=npy.float32)
 		self.normal_dist = tf.distributions.Normal(loc=self.normal_means,scale=self.normal_vars)
 
 		# Sample and placeholder for sampled actions. 
@@ -94,11 +95,11 @@ class CriticModel():
 		print("Setup Base Critic Model.")			
 
 	def define_critic_layers(self):
-		self.initialization_val = 3e-4
-		self.predicted_Qvalue = tf.layers.dense(self.hidden_layers[-1],1,name='predicted_Qvalue',
-			kernel_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val),
-			bias_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val))
-
+		# self.initialization_val = 3e-4
+		# self.predicted_Qvalue = tf.layers.dense(self.hidden_layers[-1],1,name='predicted_Qvalue',
+		# 	kernel_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val),
+		# 	bias_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val))
+		self.predicted_Qvalue = tf.layers.dense(self.hidden_layers[-1],1,name='predicted_Qvalue')
 		print("Setup Critic Model Critic Layer.")			
 
 	def define_critic_model(self,sess, to_train=None):
