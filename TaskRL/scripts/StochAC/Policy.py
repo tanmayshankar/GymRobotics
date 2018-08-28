@@ -36,9 +36,9 @@ class ActorModel():
 	def define_actor_layers(self):
 		# Create Normal distribution for action. 
 		# Use the fact that GYM takes care of bounding actions --> This is wrong, but start with this. 		
-		self.normal_means = tf.layers.dense(self.hidden_layers[-1],self.output_dimensions,activation=tf.nn.sigmoid)
+		self.normal_means = tf.layers.dense(self.hidden_layers[-1],self.output_dimensions,activation=tf.nn.tanh)
 		# self.normal_vars = tf.layers.dense(self.hidden_layers[-1],self.output_dimensions,activation=tf.nn.softplus)
-		self.normal_vars = 0.2*npy.ones((4),dtype=npy.float32)
+		self.normal_vars = 0.05*npy.ones((4),dtype=npy.float32)
 		self.normal_dist = tf.distributions.Normal(loc=self.normal_means,scale=self.normal_vars)
 
 		# Sample and placeholder for sampled actions. 

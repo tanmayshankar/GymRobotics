@@ -18,9 +18,18 @@ class Trainer():
 		self.max_timesteps = 2000
 		
 		self.initial_epsilon = 0.5
-		self.final_epislon = 0.05
+		self.final_epsilon = 0.05
+		self.test_epsilon = 0.
 		self.anneal_iterations = 100000
-		self.epsilon_anneal_rate = (self.initial_epsilon-self.final_epislon)/self.anneal_iterations
+		self.epsilon_anneal_rate = (self.initial_epsilon-self.final_epsilon)/self.anneal_iterations
+
+		# Beta value determines mixture of expert and learner. 
+		# Beta 1 means completely expert. 
+		# Beta 0 means completely learner.
+		self.initial_beta = 1.
+		self.final_beta = 0.5
+		self.test_beta = 0.
+		self.beta_anneal_rate = (self.initial_beta-self.final_beta)/self.anneal_iterations
 
 		# Training limits. 
 		self.number_episodes = 10000
@@ -42,6 +51,8 @@ class Trainer():
 		#while self.memory.check_full()==0:
 		self.max_timesteps = 200
 		print("Starting Memory Burn In.")
+		self.set_parameters(0)
+
 		# While number of transitions is less than initial_transitions.
 		while self.memory.memory_len<self.initial_transitions:
 			
@@ -51,9 +62,10 @@ class Trainer():
 			terminal = False
 
 			while counter<self.max_timesteps and self.memory.memory_len<self.initial_transitions and not(terminal):
-
+			
 				# Put in new transitions. 
 				action = self.environment.action_space.sample()
+				# action = self.select_action_beta(state)
 
 				# Take a step in the environment. 
 				next_state, onestep_reward, terminal, success = self.environment.step(action)
@@ -82,19 +94,24 @@ class Trainer():
 		if self.args.train:
 			if iteration_number<self.anneal_iterations:
 				self.annealed_epsilon = self.initial_epsilon-iteration_number*self.epsilon_anneal_rate
-				# self.annealed_beta = self.initial_beta-e*self.beta_anneal_rate			
+				self.annealed_beta = self.initial_beta-iteration_number*self.beta_anneal_rate			
 			else:
 				self.annealed_epsilon = self.final_epsilon
-				# self.annealed_beta = self.final_beta				
+				self.annealed_beta = self.final_beta				
 		else:
 			self.annealed_epsilon = self.test_epsilon	
-			# self.annealed_beta = self.final_beta
+			self.annealed_beta = self.final_beta
 
 	def assemble_state(self,state):
 		# Take state from envrionment (achieved goal,desired goal, and observation blah blah)
 		# Assemble into one vector. 
 		# (USED FOR FORWARD PASS, AND FEEDING FROM MEMORY)
 		return npy.concatenate((state['achieved_goal'],state['desired_goal'],state['observation']))
+
+	def select_action_from_expert(self, state):
+		action = npy.zeros((4))
+		action[:3] = state['desired_goal']-state['achieved_goal']
+		return action
 
 	def select_action_from_policy(self, state):
 		# Greedy selection of action from policy. 
@@ -108,7 +125,7 @@ class Trainer():
 		
 	def select_action(self, state):
 		# Select an action either from the policy or randomly. 
-		random_probability = npy.random.random()
+		random_probability = npy.random.random()				
 
 		# If less than epsilon. 
 		if random_probability < self.annealed_epsilon:
@@ -118,6 +135,20 @@ class Trainer():
 			action = self.select_action_from_policy(state)	
 
 		return action
+
+	def select_action_beta(self, state):
+		# Select an action either from the policy or randomly. 
+		random_probability = npy.random.random()				
+
+		# If less than beta. 
+		if random_probability < self.annealed_beta:
+			action = self.select_action_from_expert(state)
+		else:
+			# Greedily select action from policy. 
+			action = self.select_action_from_policy(state)				
+
+		return action
+
 
 	def policy_update(self, iter_num):
 		# Must construct target Q value here
@@ -206,10 +237,11 @@ class Trainer():
 			# Within each episode, just keep going until you terminate or we reach max number of timesteps. 
 			while not(terminal) and counter<self.max_timesteps:
 
-				self.set_parameters(counter)
+				self.set_parameters(meta_counter)
 
 				# SAMPLE ACTION FROM POLICY(STATE)				
 				action = self.select_action(state)
+				# action = self.select_action_beta(state)
 
 				# TAKE STEP WITH ACTION
 				next_state, onestep_reward, terminal, success = self.environment.step(action)				
