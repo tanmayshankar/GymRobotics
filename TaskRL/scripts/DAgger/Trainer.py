@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from headers import *
 from Memory import ReplayMemory
-from Policy import ActorCriticModel
+from Policy import DAggerPolicy
 from Transitions import Transition
 
 class Trainer():
@@ -67,7 +67,8 @@ class Trainer():
 			
 				# Put in new transitions. 
 				# action = self.environment.action_space.sample()
-				action = self.step_size*self.select_action_beta(state)
+				# action = self.step_size*self.select_action_beta(state)
+				action, expert_action = self.select_action_beta(state)
 				# print(action)
 
 				# Take a step in the environment. 
@@ -78,7 +79,7 @@ class Trainer():
 					self.environment.render()				
 
 				# Store in instance of transition class. 
-				new_transition = Transition(state,action,next_state,onestep_reward,terminal,success)
+				new_transition = Transition(state,expert_action,next_state,onestep_reward,terminal,success)
 
 				# Append new transition to memory. 
 				self.memory.append_to_memory(new_transition)
@@ -121,9 +122,9 @@ class Trainer():
 		# Here we have a continuous stochastic policy, parameterized as a Gaussian policy. 
 		# Just simply select the mean of the Gaussian as the action? 
 
-		assembled_state = npy.reshape(self.assemble_state(state),(1,self.ACModel.actor_network.input_dimensions))
+		assembled_state = npy.reshape(self.assemble_state(state),(1,self.PolicyModel.input_dimensions))
 
-		return self.sess.run(self.PolicyModel.predicted_action
+		return self.sess.run(self.PolicyModel.predicted_action,
 			feed_dict={self.PolicyModel.input: assembled_state})[0]
 		
 	def select_action(self, state):
@@ -144,6 +145,7 @@ class Trainer():
 		random_probability = npy.random.random()				
 
 		expert_action = self.select_action_from_expert(state)
+		action = npy.zeros((4))
 		# If less than beta, use expert. 
 		if random_probability < self.annealed_beta:
 			action = expert_action
@@ -158,8 +160,8 @@ class Trainer():
 		# Remember, 1 step TD here, not the MC version.
 
 		# Batch
-		self.batch_states = npy.zeros((self.batch_size, self.ACModel.actor_network.input_dimensions))
-		self.batch_actions = npy.zeros((self.batch_size, self.ACModel.actor_network.output_dimensions))		
+		self.batch_states = npy.zeros((self.batch_size, self.PolicyModel.input_dimensions))
+		self.batch_actions = npy.zeros((self.batch_size, self.PolicyModel.output_dimensions))		
 		# self.batch_next_states = npy.zeros((self.batch_size, self.ACModel.actor_network.input_dimensions))
 
 		# self.batch_target_Qvalues = npy.zeros((self.batch_size,1))
@@ -178,7 +180,7 @@ class Trainer():
 			# self.batch_terminal[k] = self.memory.memory[indices[k]].terminal
 	
 		# Update Critic and Actor
-		merged, _, _ = self.sess.run([self.PolicyModel.merged_summaries, self.PolicyModel.train_actor],
+		merged, _ = self.sess.run([self.PolicyModel.merged_summaries, self.PolicyModel.train_actor],
 			feed_dict={self.PolicyModel.input: self.batch_states,
 						self.PolicyModel.target_action: self.batch_actions})
 
@@ -215,7 +217,7 @@ class Trainer():
 
 				# TAKE STEP WITH ACTION
 				next_state, onestep_reward, terminal, success = self.environment.step(action)				
-
+				# embed()
 				# If render flag on, render environment.
 				if self.args.render: 
 					self.environment.render()				
@@ -234,7 +236,7 @@ class Trainer():
 				meta_counter+=1 
 				# If counter % save_
 				if meta_counter%self.save_every==0 and self.args.train:
-					self.ACModel.save_model(meta_counter)
+					self.PolicyModel.save_model(meta_counter)
 					print("Reached Iteration",meta_counter)
 
 			# embed()

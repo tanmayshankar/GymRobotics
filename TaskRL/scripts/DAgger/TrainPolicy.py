@@ -24,7 +24,7 @@ class PolicyManager():
 
 		# Initialize a polivy network. 
 		# self.ACModel = ActorCriticModel(input_dimensions,output_dimensions,sess=session,to_train=self.args.train)
-		self.PolicyModel = DAggerPolicy(input_dimensions,output_dimensions,sess=session,to_train=self.args.train)
+		self.PolicyModel = DAggerPolicy(input_dimensions,output_dimensions,name_scope='PolicyModel',sess=session,to_train=self.args.train)
 
 		# Create the actual network
 		if self.args.weights:

@@ -3,7 +3,7 @@ from headers import *
 
 class DAggerPolicy():
 
-	def __init__(self, input_dimensions, output_dimensions, num_layers=4,name_scope=None):
+	def __init__(self, input_dimensions, output_dimensions, num_layers=4,name_scope=None,sess=None, to_train=True):
 		self.input_dimensions = input_dimensions
 		self.output_dimensions = output_dimensions
 		self.num_layers = num_layers
@@ -48,10 +48,10 @@ class DAggerPolicy():
 
 		# Here just DAgger supervision. 
 		self.target_action = tf.placeholder(tf.float32, shape=[None,self.output_dimensions],name='target_actions')		
-		self.actor_loss = tf.losses.mean_squared_error(self.target_action, self.predicted_actions)
+		self.actor_loss = tf.losses.mean_squared_error(self.target_action, self.predicted_action)
 
 		# Must get actor variables. 
-		self.actor_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope='ActorModel')
+		self.actor_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope=self.name_scope)
 		self.actor_optimizer = tf.train.AdamOptimizer(1e-4)
 		# self.train_actor = self.actor_optimizer.minimize(self.actor_loss,name='Train_Actor',var_list=self.actor_variables)
 		self.clip_value = 10
