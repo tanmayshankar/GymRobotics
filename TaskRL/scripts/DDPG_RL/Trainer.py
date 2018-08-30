@@ -18,7 +18,7 @@ class Trainer():
 		self.max_timesteps = 2000
 		
 		self.initial_epsilon = 0.5
-		self.final_epsilon = 0.05
+		self.final_epsilon = 0.1
 		self.test_epsilon = 0.
 		self.anneal_iterations = 100000
 		self.epsilon_anneal_rate = (self.initial_epsilon-self.final_epsilon)/self.anneal_iterations
@@ -100,7 +100,7 @@ class Trainer():
 				self.annealed_beta = self.final_beta				
 		else:
 			self.annealed_epsilon = self.test_epsilon	
-			self.annealed_beta = self.final_beta
+			self.annealed_beta = self.test_beta
 
 	def assemble_state(self,state):
 		# Take state from envrionment (achieved goal,desired goal, and observation blah blah)
@@ -108,10 +108,10 @@ class Trainer():
 		# (USED FOR FORWARD PASS, AND FEEDING FROM MEMORY)
 		return npy.concatenate((state['achieved_goal'],state['desired_goal'],state['observation']))
 
-	def select_action_from_expert(self, state):
-		action = npy.zeros((4))
-		action[:3] = state['desired_goal']-state['achieved_goal']
-		return action
+	# def select_action_from_expert(self, state):
+	# 	action = npy.zeros((4))
+	# 	action[:3] = state['desired_goal']-state['achieved_goal']
+	# 	return action
 
 	def select_action_from_policy(self, state):
 		# Greedy selection of action from policy. 
@@ -136,19 +136,18 @@ class Trainer():
 
 		return action
 
-	def select_action_beta(self, state):
-		# Select an action either from the policy or randomly. 
-		random_probability = npy.random.random()				
+	# def select_action_beta(self, state):
+	# 	# Select an action either from the policy or randomly. 
+	# 	random_probability = npy.random.random()				
 
-		# If less than beta. 
-		if random_probability < self.annealed_beta:
-			action = self.select_action_from_expert(state)
-		else:
-			# Greedily select action from policy. 
-			action = self.select_action_from_policy(state)				
+	# 	# If less than beta. 
+	# 	if random_probability < self.annealed_beta:
+	# 		action = self.select_action_from_expert(state)
+	# 	else:
+	# 		# Greedily select action from policy. 
+	# 		action = self.select_action_from_policy(state)				
 
-		return action
-
+	# 	return action
 
 	def policy_update(self, iter_num):
 		# Must construct target Q value here
@@ -167,7 +166,6 @@ class Trainer():
 		indices = self.memory.sample_batch()
 
 		for k in range(len(indices)):
-
 			self.batch_states[k] = self.assemble_state(self.memory.memory[indices[k]].state)
 			self.batch_next_states[k] = self.assemble_state(self.memory.memory[indices[k]].next_state)
 			self.batch_actions[k] = self.memory.memory[indices[k]].action
@@ -190,8 +188,8 @@ class Trainer():
 		# First evaluate critic estimates of Q(s',pi(s')).
 		critic_estimates = self.sess.run(self.ACModel.critic_network.predicted_Qvalue, 
 			feed_dict={self.ACModel.critic_network.input: self.batch_next_states,
-						self.ACModel.critic_network.action_taken: next_actions,
-						self.ACModel.actor_network.input: self.batch_next_states})
+						self.ACModel.critic_network.action_taken: next_actions})
+						# self.ACModel.actor_network.input: self.batch_next_states})
 
 		# Next construct target Q as r+gamma Q(s',pi(s')).
 		self.batch_target_Qvalues = self.batch_onestep_rewards+self.gamma*(1-self.batch_terminal)*critic_estimates
@@ -200,9 +198,8 @@ class Trainer():
 		# Update Critic and Actor
 		merged, _, _ = self.sess.run([self.ACModel.merged_summaries, self.ACModel.train_critic, self.ACModel.train_actor],
 			feed_dict={self.ACModel.critic_network.input: self.batch_states,
+						self.ACModel.actor_network.input: self.batch_states,
 						self.ACModel.critic_network.action_taken: self.batch_actions,
-						self.ACModel.actor_network.sampled_action: self.batch_actions,
-						self.ACModel.actor_network.input: self.batch_states, 
 						self.ACModel.target_Qvalue: self.batch_target_Qvalues})
 
 		# NOTES: 
