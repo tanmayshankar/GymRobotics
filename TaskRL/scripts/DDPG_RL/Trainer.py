@@ -120,7 +120,7 @@ class Trainer():
 
 		assembled_state = npy.reshape(self.assemble_state(state),(1,self.ACModel.actor_network.input_dimensions))
 
-		return self.sess.run(self.ACModel.actor_network.normal_means, 
+		return self.sess.run(self.ACModel.actor_network.predicted_action,
 			feed_dict={self.ACModel.actor_network.input: assembled_state})[0]
 		
 	def select_action(self, state):
@@ -182,7 +182,7 @@ class Trainer():
 		# Because we never forward propagated the critic network with a selected action.
 		# In AC-OffPG, we used .. placeholders. 
 
-		next_actions = self.sess.run(self.ACModel.actor_network.sample_action,
+		next_actions = self.sess.run(self.ACModel.actor_network.predicted_action,
 			feed_dict={self.ACModel.actor_network.input: self.batch_next_states})
 
 		# First evaluate critic estimates of Q(s',pi(s')).

@@ -144,11 +144,11 @@ class ActorCriticModel():
 		self.actor_optimizer = tf.train.AdamOptimizer(1e-4)
 
 		# First compute: \nabla_{a} Q(s_t,a) | a=\mu(s_t|\theta) 		
-		self.critic_grad_wrt_action = tf.gradients(self.critic_network.predicted_Qvalue, self.critic_network.action_taken)
+		self.critic_grad_wrt_action = tf.gradients(-self.critic_network.predicted_Qvalue, self.critic_network.action_taken)
 
 		# Now compute: \nabla_{\theta} \mu(s_t|\theta). 
 		# Use GRAD_YS parameter in tf.gradients to multiply this with \nabla_{a} Q(s_t,a) | a=\mu(s_t|\theta).
-		self.actor_gradients = tf.gradients(self.actor_network.predicted_action,self.actor_variables, grad_ys=-self.critic_grad_wrt_action)		
+		self.actor_gradients = tf.gradients(self.actor_network.predicted_action,self.actor_variables, grad_ys=self.critic_grad_wrt_action)		
 		# Remember, tf.gradients only returns gradients. 
 		# Optimizer.compute_gradients used to return var list and gradients. 
 
