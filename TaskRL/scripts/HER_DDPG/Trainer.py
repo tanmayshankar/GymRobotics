@@ -65,6 +65,9 @@ class Trainer():
 			state = self.environment.reset()
 			terminal = False
 
+			# Create a list of transitions that represnt the episode. 
+			episode_transition_list = []
+
 			while counter<self.max_timesteps and self.memory.memory_len<self.initial_transitions and not(terminal):
 			
 				# Put in new transitions. 
@@ -81,14 +84,32 @@ class Trainer():
 				# Store in instance of transition class. 
 				new_transition = Transition(state,action,next_state,onestep_reward,terminal,success)
 
-				# Append new transition to memory. 
-				self.memory.append_to_memory(new_transition)
+				episode_transition_list.append(new_transition)
+
+				# DO NOT append to memory now. 
+				# Change goal to the goal finally achieved at the end of the episode. 
+
+				# # Append new transition to memory. 
+				# self.memory.append_to_memory(new_transition)
 
 				# Copy next state into state. 
 				state = copy.deepcopy(next_state)
 
 				# Increment counter. 
 				counter+=1
+
+			# Now that the episode is done, 
+			# Change all the "Desired goal" variables to the goal actually achieved. 
+			achieved_goal = copy.deepcopy(state['achieved_goal'])
+
+			# Copy the Actually achieved goal as the desired goal to all transitions in the memory. 
+			# Now append the transiiton into the memory. 
+			for k in range(len(episode_transition_list)):
+				episode_transition_list[k].state['desired_goal'] = copy.deepcopy(achieved_goal)
+				episode_transition_list[k].next_state['desired_goal'] = copy.deepcopy(achieved_goal)
+
+				# Append into memory. 
+				self.memory.append_to_memory(episode_transition_list[k])
 
 		self.max_timesteps = 2000
 		print("Memory Burn In Complete.")
@@ -260,7 +281,8 @@ class Trainer():
 			terminal = False
 			eps_reward = 0.
 
-						
+			episode_transition_list = []
+
 			# Within each episode, just keep going until you terminate or we reach max number of timesteps. 
 			while not(terminal) and counter<self.max_timesteps:
 
@@ -292,7 +314,9 @@ class Trainer():
 				if self.args.train:
 					# STORE TRANSITION IN MEMORY. 
 					new_transition = Transition(state,action,next_state,onestep_reward,terminal,success)
-					self.memory.append_to_memory(new_transition)
+					# self.memory.append_to_memory(new_transition)
+
+					episode_transition_list = []
 
 					# UPDATE POLICY (need to decide whether to do thios at every step, or less frequently).	
 					self.policy_update(meta_counter)
@@ -308,6 +332,14 @@ class Trainer():
 				if meta_counter%self.save_every==0 and self.args.train:
 					self.ACModel.save_model(meta_counter)
 					print("Reached Iteration",meta_counter)
+
+			achieved_goal = copy.deepcopy(state['achieved_goal'])	
+
+			for k in range(len(episode_transition_list)):
+				episode_transition_list[k].state['desired_goal'] = copy.deepcopy(achieved_goal)
+				episode_transition_list[k].next_state['desired_goal'] = copy.deepcopy(achieved_goal)
+
+				self.memory.append_to_memory(episode_transition_list[k])
 
 			# embed()
 
