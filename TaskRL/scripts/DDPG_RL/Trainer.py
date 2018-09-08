@@ -17,7 +17,7 @@ class Trainer():
 
 		self.max_timesteps = 2000
 		
-		self.initial_epsilon = 0.5
+		self.initial_epsilon = 0.8
 		self.final_epsilon = 0.1
 		self.test_epsilon = 0.
 		self.anneal_iterations = 100000
@@ -214,12 +214,13 @@ class Trainer():
 	def meta_training(self):
 		# Interacting with the environment: 
 		# For initialize_memory, just randomly sample actions from the action space, use env.action_space.sample()
-
-		self.initialize_memory()
+		if self.args.train:
+			self.initialize_memory()		
 		# Train for at least these many episodes. 
 
 		print("Starting Main Training Procedure.")
 		meta_counter = 0
+		self.set_parameters(meta_counter)
 
 		for e in range(self.number_episodes):
 
@@ -236,7 +237,7 @@ class Trainer():
 
 				self.set_parameters(meta_counter)
 
-				# SAMPLE ACTION FROM POLICY(STATE)				
+				# SAMPLE ACTION FROM POLICY(STATE)			
 				action = self.select_action(state)
 				# action = self.select_action_beta(state)
 
@@ -247,12 +248,15 @@ class Trainer():
 				if self.args.render: 
 					self.environment.render()				
 
-				# STORE TRANSITION IN MEMORY. 
-				new_transition = Transition(state,action,next_state,onestep_reward,terminal,success)
-				self.memory.append_to_memory(new_transition)
+				if self.args.train:
+					# STORE TRANSITION IN MEMORY. 
+					new_transition = Transition(state,action,next_state,onestep_reward,terminal,success)
+					self.memory.append_to_memory(new_transition)
 
-				# UPDATE POLICY (need to decide whether to do thios at every step, or less frequently).
-				self.policy_update(counter)
+					# UPDATE POLICY (need to decide whether to do thios at every step, or less frequently).	
+					self.policy_update(counter)
+				else: 
+					print(action)
 
 				state = copy.deepcopy(next_state)
 

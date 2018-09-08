@@ -3,7 +3,7 @@ from headers import *
 
 class ReplayMemory():
 
-	def __init__(self, memory_size=100000):
+	def __init__(self, memory_size=20000):
 		
 		# Implementing the memory as a list of transitions. 
 		# This acts as a queue. 
@@ -35,11 +35,6 @@ class ReplayMemory():
 		indices = npy.random.randint(0,high=self.memory_len,size=(batch_size))
 
 		return indices
-
-	def retrieve_batch(self, batch_size=25):
-		# self.memory_len = len(self.memory)
-
-		return npy.arange(0,batch_size)
 
 	def check_full(self):
 

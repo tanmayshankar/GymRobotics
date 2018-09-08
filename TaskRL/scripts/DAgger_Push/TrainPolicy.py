@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 from headers import *
 from Memory import ReplayMemory
-from Policy import ActorCriticModel
+# from Policy import ActorCriticModel
+from Policy import DAggerPolicy
 from Trainer import Trainer
 
 class PolicyManager():
@@ -22,19 +23,20 @@ class PolicyManager():
 		output_dimensions = 4
 
 		# Initialize a polivy network. 
-		self.ACModel = ActorCriticModel(input_dimensions,output_dimensions,sess=session,to_train=self.args.train)
+		# self.ACModel = ActorCriticModel(input_dimensions,output_dimensions,sess=session,to_train=self.args.train)
+		self.PolicyModel = DAggerPolicy(input_dimensions,output_dimensions,name_scope='PolicyModel',sess=session,to_train=self.args.train)
 
 		# Create the actual network
 		if self.args.weights:
-			self.ACModel.create_policy_network(session, pretrained_weights=self.args.weights,to_train=self.args.train)
+			self.PolicyModel.create_policy_network(session, pretrained_weights=self.args.weights,to_train=self.args.train)
 		else:
-			self.ACModel.create_policy_network(session, to_train=self.args.train)			
+			self.PolicyModel.create_policy_network(session, to_train=self.args.train)			
 
 		# Initialize a memory replay. 
 		self.memory = ReplayMemory()
 
 		# Create a trainer instance. 
-		self.trainer = Trainer(sess=session,policy=self.ACModel, environment=self.environment, memory=self.memory,args=self.args)
+		self.trainer = Trainer(sess=session,policy=self.PolicyModel, environment=self.environment, memory=self.memory,args=self.args)
 
 	def train(self):
 		self.trainer.meta_training()
@@ -45,7 +47,6 @@ def parse_arguments():
 	parser.add_argument('--train',dest='train',type=int,default=1)
 	parser.add_argument('--env',dest='env',type=str)
 	parser.add_argument('--gpu',dest='gpu',type=str)
-	parser.add_argument('--suffix',dest='suffix',type=str)
 	parser.add_argument('--render',dest='render',type=int,default=0)	
 
 	return parser.parse_args()

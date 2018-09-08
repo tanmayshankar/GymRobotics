@@ -133,11 +133,11 @@ class ActorCriticModel():
 		self.critic_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope='CriticModel')
 
 		# Creating a training operation to minimize the critic loss.
-		self.critic_optimizer = tf.train.AdamOptimizer(1e-4)
+		self.critic_optimizer = tf.train.AdamOptimizer(1e-5)
 		# self.train_critic = self.critic_optimizer.minimize(self.critic_loss,name='Train_Critic',var_list=self.critic_variables)
 
 		# Clipping gradients because of NaN values. 
-		self.clip_value = 10
+		self.clip_value = 1
 		self.critic_gradients_vars = self.critic_optimizer.compute_gradients(self.critic_loss,var_list=self.critic_variables)
 		self.critic_clipped_gradients = [(tf.clip_by_norm(grad,self.clip_value),var) for grad, var in self.critic_gradients_vars]
 		# self.train_critic = self.critic_optimizer.apply_gradients(self.critic_gradients_vars)

@@ -35,7 +35,10 @@ class ActorModel():
 
 	def define_actor_layers(self):
 		# Now constructing deterministic policy representation. 
-		self.predicted_action = tf.layers.dense(self.hidden_layers[-1],self.output_dimensions,activation=tf.nn.tanh)
+		self.initialization_val = 3e-4
+		self.predicted_action = tf.layers.dense(self.hidden_layers[-1],self.output_dimensions,name='predicted_action',activation=tf.nn.tanh,
+			kernel_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val),
+			bias_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val))
 		print("Setup Actor Model Actor Layers.")
 		
 	def define_actor_model(self,sess, to_train=None):
@@ -86,11 +89,11 @@ class CriticModel():
 		print("Setup Base Critic Model.")			
 
 	def define_critic_layers(self):
-		# self.initialization_val = 3e-4
-		# self.predicted_Qvalue = tf.layers.dense(self.hidden_layers[-1],1,name='predicted_Qvalue',
-		# 	kernel_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val),
-		# 	bias_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val))
-		self.predicted_Qvalue = tf.layers.dense(self.hidden_layers[-1],1,name='predicted_Qvalue')
+		self.initialization_val = 3e-4
+		self.predicted_Qvalue = tf.layers.dense(self.hidden_layers[-1],1,name='predicted_Qvalue',
+			kernel_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val),
+			bias_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val))
+		# self.predicted_Qvalue = tf.layers.dense(self.hidden_layers[-1],1,name='predicted_Qvalue')
 		print("Setup Critic Model Critic Layer.")			
 
 	def define_critic_model(self,sess, to_train=None):
@@ -124,11 +127,11 @@ class ActorCriticModel():
 		self.critic_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope=self.critic_network.name_scope)
 
 		# Creating a training operation to minimize the critic loss.
-		self.critic_optimizer = tf.train.AdamOptimizer(1e-4)
+		self.critic_optimizer = tf.train.AdamOptimizer(1e-5)
 		# self.train_critic = self.critic_optimizer.minimize(self.critic_loss,name='Train_Critic',var_list=self.critic_variables)
 
 		# Clipping gradients because of NaN values. 
-		self.clip_value = 10
+		self.clip_value = 1
 		self.critic_gradients_vars = self.critic_optimizer.compute_gradients(self.critic_loss,var_list=self.critic_variables)
 		self.critic_clipped_gradients = [(tf.clip_by_norm(grad,self.clip_value),var) for grad, var in self.critic_gradients_vars]
 		# self.train_critic = self.critic_optimizer.apply_gradients(self.critic_gradients_vars)
@@ -141,7 +144,7 @@ class ActorCriticModel():
 
 		# Must get actor variables. 
 		self.actor_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope=self.actor_network.name_scope)
-		self.actor_optimizer = tf.train.AdamOptimizer(1e-4)
+		self.actor_optimizer = tf.train.AdamOptimizer(1e-5)
 
 		# First compute: \nabla_{a} Q(s_t,a) | a=\mu(s_t|\theta) 		
 		self.critic_grad_wrt_action = tf.gradients(-self.critic_network.predicted_Qvalue, self.critic_network.action_taken)

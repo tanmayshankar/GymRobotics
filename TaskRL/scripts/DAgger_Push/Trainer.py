@@ -113,7 +113,6 @@ class Trainer():
 		return npy.concatenate((state['achieved_goal'],state['desired_goal'],state['observation']))
 
 	def select_action_from_expert(self, state):
-		print("THE EXPERT IS HERE, have no fear!")
 		action = npy.zeros((4))
 		action[:3] = state['desired_goal']-state['achieved_goal']
 		return action
@@ -191,13 +190,11 @@ class Trainer():
 		# Interacting with the environment: 
 		# For initialize_memory, just randomly sample actions from the action space, use env.action_space.sample()
 
-		if self.args.train:
-			self.initialize_memory()
+		self.initialize_memory()
 		# Train for at least these many episodes. 
-		
+
 		print("Starting Main Training Procedure.")
 		meta_counter = 0
-		self.set_parameters(meta_counter)
 
 		for e in range(self.number_episodes):
 
@@ -216,10 +213,7 @@ class Trainer():
 
 				# SAMPLE ACTION FROM POLICY(STATE)				
 				# action = self.step_size*self.select_action_beta(state)
-				if self.args.train:
-					action, expert_action = self.select_action_beta(state)
-				else: 
-					action = self.select_action(state)
+				action, expert_action = self.select_action_beta(state)
 
 				# TAKE STEP WITH ACTION
 				next_state, onestep_reward, terminal, success = self.environment.step(action)				
@@ -228,14 +222,12 @@ class Trainer():
 				if self.args.render: 
 					self.environment.render()				
 
-				if self.args.train:
-					# STORE TRANSITION IN MEMORY WITH EXPERT ACTION: 
-					new_transition = Transition(state,expert_action,next_state,onestep_reward,terminal,success)
-					self.memory.append_to_memory(new_transition)
+				# STORE TRANSITION IN MEMORY WITH EXPERT ACTION: 
+				new_transition = Transition(state,expert_action,next_state,onestep_reward,terminal,success)
+				self.memory.append_to_memory(new_transition)
 
 				# UPDATE POLICY (need to decide whether to do thios at every step, or less frequently).
-				if self.args.train:
-					self.policy_update(counter)
+				self.policy_update(counter)
 
 				state = copy.deepcopy(next_state)
 

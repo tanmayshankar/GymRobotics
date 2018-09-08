@@ -31,13 +31,15 @@ class Trainer():
 		self.test_beta = 0.
 		self.beta_anneal_rate = (self.initial_beta-self.final_beta)/self.anneal_iterations
 
+		self.step_size = 1.
+
 		# Training limits. 
 		self.number_episodes = 10000
 
 		# Batch size, observation size
 		self.batch_size = 25
 		self.gamma = 0.99
-		self.save_every = 10000
+		self.save_every = 5000
 	
 		print("Setup Trainer Init.")
 
@@ -65,7 +67,8 @@ class Trainer():
 			
 				# Put in new transitions. 
 				# action = self.environment.action_space.sample()
-				action = self.select_action_beta(state)
+				action = self.step_size*self.select_action_beta(state)
+				# print(action)
 
 				# Take a step in the environment. 
 				next_state, onestep_reward, terminal, success = self.environment.step(action)
@@ -100,7 +103,7 @@ class Trainer():
 				self.annealed_beta = self.final_beta				
 		else:
 			self.annealed_epsilon = self.test_epsilon	
-			self.annealed_beta = self.final_beta
+			self.annealed_beta = self.test_beta
 
 	def assemble_state(self,state):
 		# Take state from envrionment (achieved goal,desired goal, and observation blah blah)
@@ -140,7 +143,7 @@ class Trainer():
 		# Select an action either from the policy or randomly. 
 		random_probability = npy.random.random()				
 
-		# If less than beta. 
+		# If less than beta, use expert. 
 		if random_probability < self.annealed_beta:
 			action = self.select_action_from_expert(state)
 		else:
@@ -148,7 +151,6 @@ class Trainer():
 			action = self.select_action_from_policy(state)				
 
 		return action
-
 
 	def policy_update(self, iter_num):
 		# Must construct target Q value here
@@ -240,7 +242,7 @@ class Trainer():
 				self.set_parameters(meta_counter)
 
 				# SAMPLE ACTION FROM POLICY(STATE)				
-				action = self.select_action_beta(state)
+				action = self.step_size*self.select_action_beta(state)
 
 				# TAKE STEP WITH ACTION
 				next_state, onestep_reward, terminal, success = self.environment.step(action)				
