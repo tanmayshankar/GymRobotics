@@ -46,7 +46,9 @@ class ActorModel():
 			self.action_scaling = 1. 
 
 		# Now constructing deterministic policy representation. 
-		self.initialization_val = 3
+
+		# HEre initializing to a large value saturates the activations.
+		self.initialization_val = 3e-2
 		self.predicted_action = self.action_scaling*tf.layers.dense(self.hidden_layers[-1],self.output_dimensions,name='predicted_action',activation=tf.nn.tanh,
 			# kernel_regularizer=tf.contrib.layers.l2_regularizer(self.regularization_coeff),
 			kernel_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val),

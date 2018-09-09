@@ -77,9 +77,10 @@ class Trainer():
 				# # If render flag on, render environment.
 				# if self.args.render: 
 				# 	self.environment.render()				
+				memory_terminal, terminal = self.check_alternate_termination(next_state, terminal, success)
 
 				# Store in instance of transition class. 
-				new_transition = Transition(state,action,next_state,onestep_reward,terminal,success)
+				new_transition = Transition(state,action,next_state,onestep_reward,memory_terminal,success)
 
 				# Append new transition to memory. 
 				self.memory.append_to_memory(new_transition)
@@ -236,14 +237,41 @@ class Trainer():
 		# 		Precomputation removes gradients with respect to Q(s',pi(s')) that actually depend on critic parameters. 
 		self.ACModel.tf_writer.add_summary(merged, iter_num)		
 
+	def check_alternate_termination(self, next_state, terminal, success):
+		memory_terminal = False
+		if self.args.env=='MountainCarContinuous-v0':
+			print("Special Mountain Car Termination")
+			# If we actually succeed, set memory_terminal to True. 
+			if next_state[0]>0.5:
+				terminal = True
+				memory_terminal = True
+			elif terminal==True:
+				# terminal is kept true for time limit. 
+				# memory_terminal is set to False.
+				memory_terminal = False
+				
+		if self.args.env=='FetchReach-v0' or self.args.env=='FetchPush-v0':
+			# print("Special Fetch Termination")
+
+			# If we actually succeed, set terminal symbol to true. 
+			# Else if we "terminate" (due to time steps), set memory terminal symbol to False. 
+
+			if terminal==True and success['is_success']:
+				memory_terminal = True
+				terminal = True
+			# This should evaluate to true only if success is false and terminal is true.
+			elif terminal==True:
+				memory_terminal = False
+
+		return memory_terminal, terminal
+
 	def meta_training(self):
 		# Interacting with the environment: 
+		
 		# For initialize_memory, just randomly sample actions from the action space, use env.action_space.sample()
 		if self.args.train:
 			self.initialize_memory()		
-			# self.initial_epsilon = 0.8
-		# Train for at least these many episodes. 
-		embed()
+				
 		print("Starting Main Training Procedure.")
 		meta_counter = 0
 		episode_counter = 0
@@ -259,7 +287,7 @@ class Trainer():
 			state = self.environment.reset()
 			terminal = False
 			eps_reward = 0.
-
+			memory_terminal = False
 						
 			# Within each episode, just keep going until you terminate or we reach max number of timesteps. 
 			while not(terminal) and counter<self.max_timesteps:
@@ -275,15 +303,7 @@ class Trainer():
 
 				eps_reward += copy.deepcopy(onestep_reward)
 
-				if self.args.env=='MountainCarContinuous-v0':
-					print("Special Mountain Car Termination")
-					if next_state[0]>0.5:
-						terminal = True
-						success = True
-					else:
-						if terminal==True:
-							terminal = False
-
+				memory_terminal, terminal = self.check_alternate_termination(next_state, terminal, success)
 
 				# If render flag on, render environment.
 				if self.args.render: 
@@ -291,7 +311,7 @@ class Trainer():
 
 				if self.args.train:
 					# STORE TRANSITION IN MEMORY. 
-					new_transition = Transition(state,action,next_state,onestep_reward,terminal,success)
+					new_transition = Transition(state,action,next_state,onestep_reward,memory_terminal,success)
 					self.memory.append_to_memory(new_transition)
 
 					# UPDATE POLICY (need to decide whether to do thios at every step, or less frequently).	
@@ -313,15 +333,3 @@ class Trainer():
 
 			print("Episode: ",episode_counter," Reward: ",eps_reward, " Counter:", counter, terminal)
 			episode_counter +=1 
-
-
-
-
-		
-
-
-
-
-
-
-
