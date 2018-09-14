@@ -28,10 +28,10 @@ class ActorModel():
 
 		# Defining hidden layers of MLP. 
 		self.hidden_layers = [[] for i in range(self.num_layers)]        
-		self.hidden_layers[0] = tf.layers.dense(self.input, self.hidden_units[0], activation=tf.nn.tanh)
+		self.hidden_layers[0] = tf.layers.dense(self.input, self.hidden_units[0], activation=tf.nn.relu)
 
 		for i in range(1,self.num_layers):
-			self.hidden_layers[i] = tf.layers.dense(self.hidden_layers[i-1],self.hidden_units[i],activation=tf.nn.tanh)
+			self.hidden_layers[i] = tf.layers.dense(self.hidden_layers[i-1],self.hidden_units[i],activation=tf.nn.relu)
 
 		print("Setup Base Actor Model.")
 
@@ -97,15 +97,15 @@ class CriticModel():
 
 		# Defining hidden layers of MLP. 
 		self.hidden_layers = [[] for i in range(self.num_layers)]        
-		self.hidden_layers[0] = tf.layers.dense(self.concat_input, self.hidden_units[0], activation=tf.nn.tanh)
+		self.hidden_layers[0] = tf.layers.dense(self.concat_input, self.hidden_units[0], activation=tf.nn.relu)
 
 		for i in range(1,self.num_layers):
-			self.hidden_layers[i] = tf.layers.dense(self.hidden_layers[i-1],self.hidden_units[i],activation=tf.nn.tanh)
+			self.hidden_layers[i] = tf.layers.dense(self.hidden_layers[i-1],self.hidden_units[i],activation=tf.nn.relu)
 
 		print("Setup Base Critic Model.")
 
 	def define_critic_layers(self):
-		self.initialization_val = 3e-2
+		self.initialization_val = 5e-1
 		self.predicted_Qvalue = tf.layers.dense(self.hidden_layers[-1],1,name='predicted_Qvalue',
 			kernel_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val),
 			bias_initializer=tf.random_uniform_initializer(minval=-self.initialization_val,maxval=self.initialization_val))
@@ -160,7 +160,7 @@ class ActorCriticModel():
 
 		# Must get actor variables. 
 		self.actor_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope=self.actor_network.name_scope)
-		self.actor_optimizer = tf.train.AdamOptimizer(1e-4)
+		self.actor_optimizer = tf.train.AdamOptimizer(1e-5)
 
 		# First compute: \nabla_{a} Q(s_t,a) | a=\mu(s_t|\theta) 		
 		self.critic_grad_wrt_action = tf.gradients(-self.critic_network.predicted_Qvalue, self.critic_network.action_taken)

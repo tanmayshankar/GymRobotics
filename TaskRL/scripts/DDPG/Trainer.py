@@ -17,8 +17,8 @@ class Trainer():
 
 		self.max_timesteps = 2000
 		
-		self.initial_epsilon = 0.6
-		self.final_epsilon = 0.1
+		self.initial_epsilon = 1.
+		self.final_epsilon = 0.2
 		self.test_epsilon = 0.
 		self.anneal_iterations = 1000000
 		self.epsilon_anneal_rate = (self.initial_epsilon-self.final_epsilon)/self.anneal_iterations
@@ -57,11 +57,15 @@ class Trainer():
 		print("Starting Memory Burn In.")
 		self.set_parameters(0)
 
+		episode_counter = 0
+		
+
 		# While number of transitions is less than initial_transitions.
 		while self.memory.memory_len<self.initial_transitions:
 			
 			# Start a new episode. 
 			counter=0
+			eps_reward = 0.
 			state = self.environment.reset()
 			terminal = False
 
@@ -73,6 +77,8 @@ class Trainer():
 
 				# Take a step in the environment. 
 				next_state, onestep_reward, terminal, success = self.environment.step(action)
+
+				eps_reward += copy.deepcopy(onestep_reward)
 
 				# # If render flag on, render environment.
 				# if self.args.render: 
@@ -90,6 +96,10 @@ class Trainer():
 
 				# Increment counter. 
 				counter+=1
+
+			print("Episode: ",episode_counter," Reward: ",eps_reward, " Counter:", counter, terminal)
+
+			episode_counter += 1
 
 		self.max_timesteps = 2000
 		print("Memory Burn In Complete.")
@@ -116,10 +126,12 @@ class Trainer():
 			return npy.reshape(temp,(1,self.ACModel.actor_network.input_dimensions))
 		else:
 			return npy.reshape(state,(1,self.ACModel.actor_network.input_dimensions))
-	# def select_action_from_expert(self, state):
-	# 	action = npy.zeros((4))
-	# 	action[:3] = state['desired_goal']-state['achieved_goal']
-	# 	return action
+
+	def select_action_from_expert(self, state):
+		pass
+		# action = npy.zeros((4))
+		# action[:3] = state['desired_goal']-state['achieved_goal']
+		# return action
 
 	def select_action_from_policy(self, state):
 		# Greedy selection of action from policy. 
@@ -144,18 +156,19 @@ class Trainer():
 
 		return action
 
-	# def select_action_beta(self, state):
-	# 	# Select an action either from the policy or randomly. 
-	# 	random_probability = npy.random.random()				
+	def select_action_beta(self, state):
+		pass
+		# # Select an action either from the policy or randomly. 
+		# random_probability = npy.random.random()				
 
-	# 	# If less than beta. 
-	# 	if random_probability < self.annealed_beta:
-	# 		action = self.select_action_from_expert(state)
-	# 	else:
-	# 		# Greedily select action from policy. 
-	# 		action = self.select_action_from_policy(state)				
+		# # If less than beta. 
+		# if random_probability < self.annealed_beta:
+		# 	action = self.select_action_from_expert(state)
+		# else:
+		# 	# Greedily select action from policy. 
+		# 	action = self.select_action_from_policy(state)				
 
-	# 	return action
+		# return action
 
 	def policy_update(self, iter_num):
 		# Must construct target Q value here
