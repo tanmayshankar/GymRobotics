@@ -310,8 +310,7 @@ class Trainer():
 				# SAMPLE ACTION FROM POLICY(STATE)			
 				action = self.select_action(state)
 				# action = self.select_action_beta(state)
-				# print(action)
-				# TAKE STEP WITH ACTION
+
 				next_state, onestep_reward, terminal, success = self.environment.step(action)				
 
 				eps_reward += copy.deepcopy(onestep_reward)
@@ -341,8 +340,6 @@ class Trainer():
 				if meta_counter%self.save_every==0 and self.args.train:
 					self.ACModel.save_model(meta_counter)
 					print("Reached Iteration",meta_counter)
-
-			# embed()
 
 			print("Episode: ",episode_counter," Reward: ",eps_reward, " Counter:", counter, terminal)
 			episode_counter +=1 
