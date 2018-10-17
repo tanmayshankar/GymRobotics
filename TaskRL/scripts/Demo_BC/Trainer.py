@@ -82,6 +82,7 @@ class Trainer():
 					self.environment.render()				
 
 				# Store in instance of transition class. 
+				# Remember, here we are adding EXPERT action to the memory. 
 				new_transition = Transition(state,expert_action,next_state,onestep_reward,terminal,success)
 
 				# Do not append transition to memory yet. 
@@ -177,7 +178,6 @@ class Trainer():
 		self.batch_actions = npy.zeros((self.batch_size, self.PolicyModel.output_dimensions))		
 		self.batch_likelihood_ratios = npy.ones((self.batch_size,1))
 		
-
 		for kx in range(self.batch_size):
 
 			# Instead of accessing memory.memory[k].state, use episode[k].state.
@@ -185,18 +185,20 @@ class Trainer():
 			# This should be the expert action.
 			self.batch_actions[kx] = episode[kx].action
 		
-		# PROBABILITY OF THE ACTION
-		self.batch_probabilities = self.sess.run(self.PolicyModel.action_likelihood,
-			feed_dict={self.PolicyModel.sampled_action: self.batch_actions,
-						self.PolicyModel.input: self.batch_states})
 
-		# Run forward the policy on batch_state[kx] and batch_actions[kx] to get the probability. 
-		# Use this probability for likelihood ratio. 				
+		# IN THE DEMO_BC CODE, WE ARE SETTING BATCH likelihood RATIOS TO 1. 
+		# # PROBABILITY OF THE ACTION
+		# self.batch_probabilities = self.sess.run(self.PolicyModel.action_likelihood,
+		# 	feed_dict={self.PolicyModel.sampled_action: self.batch_actions,
+		# 				self.PolicyModel.input: self.batch_states})
+
+		# # Run forward the policy on batch_state[kx] and batch_actions[kx] to get the probability. 
+		# # Use this probability for likelihood ratio. 				
 		
-		# Set likelihood ratios. 		
-		for kx in range(self.batch_size):
-			# Iteratively set the likelihood ratios from timestep 1 to T. 
-			self.batch_likelihood_ratios[kx] = self.batch_likelihood_ratios[kx-1]*self.batch_probabilities[kx]
+		# # Set likelihood ratios. 		
+		# for kx in range(self.batch_size):
+		# 	# Iteratively set the likelihood ratios from timestep 1 to T. 
+		# 	self.batch_likelihood_ratios[kx] = self.batch_likelihood_ratios[kx-1]*self.batch_probabilities[kx]
 
 		merged , _ = self.sess.run([self.PolicyModel.merged_summaries, self.PolicyModel.train_actor],
 			feed_dict={self.PolicyModel.sampled_action: self.batch_actions,
@@ -248,7 +250,6 @@ class Trainer():
 				# if counter%self.save_every==0 and self.args.train:
 			self.PolicyModel.save_model(e)				
 			
-
 	def meta_testing(self):
 		
 		self.set_parameters(0)
